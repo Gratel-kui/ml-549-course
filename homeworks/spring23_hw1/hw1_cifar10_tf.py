@@ -18,6 +18,9 @@ from wandb.keras import WandbMetricsLogger
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
+from keras.layers import Input, Conv2D, Activation, MaxPool2D, BatchNormalization, Flatten, Dense, Dropout
+from keras.models import Model
+
 import tensorflow_datasets as tfds
 from matplotlib import pyplot as plt
 
@@ -30,7 +33,7 @@ if __name__ == '__main__':
     wandb.init(
         project="hw1_spring2023",  # Leave this as 'hw1_spring2023'
         entity="bu-spark-ml",  # Leave this
-        group="<your_BU_username>",  # <<<<<<< Put your BU username here
+        group="chengyuz",  # <<<<<<< Put your BU username here
         notes="Minimal model"  # <<<<<<< You can put a short note here
     )
 
@@ -78,18 +81,36 @@ if __name__ == '__main__':
     ds_cifar10_test = ds_cifar10_test.prefetch(tf.data.AUTOTUNE)
 
     # Define the model here
-    model = tf.keras.models.Sequential([
-        keras.Input(shape=(32, 32, 3)),
-        #####################################
+    input = Input(shape=(32, 32, 3))
+    X = Conv2D(64, (3, 3))(input)
+    X = BatchNormalization()(X)
+    X = Activation("relu")(X)
+    X = Conv2D(64, (5, 5))(X)
+    X = BatchNormalization()(X)
+    X = Activation("relu")(X)
+    X = Dropout(0.25)(X)
+    X = MaxPool2D((2,2))(X)
+    
+    X = Conv2D(128, (3, 3))(X)
+    X = BatchNormalization()(X)
+    X = Activation("relu")(X)
+    X = Conv2D(128, (5, 5))(X)
+    X = BatchNormalization()(X)
+    X = Activation("relu")(X)
+    X = Dropout(0.25)(X)
+    X = Conv2D(256, (3, 3))(X)
+    X = BatchNormalization()(X)
+    X = Activation("relu")(X)
+    X = Dropout(0.25)(X)
+    X = Flatten()(X)
+    output = Dense(10, activation="softmax")(X)
+    
+    model = Model(input, output)
+	
+
+	#####################################
         # Edit code here -- Update the model definition
         # You will need a dense last layer with 10 output channels to classify the 10 classes
-        # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-        layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        tf.keras.layers.Dense(10)
-    ])
-
     # Log the training hyper-parameters for WandB
     # If you change these in model.compile() or model.fit(), be sure to update them here.
     wandb.config = {
@@ -98,7 +119,7 @@ if __name__ == '__main__':
         # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
         "learning_rate": 0.001,
         "optimizer": "adam",
-        "epochs": 5,
+        "epochs": 30,
         "batch_size": 32
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     }
@@ -111,7 +132,7 @@ if __name__ == '__main__':
 
     history = model.fit(
         ds_cifar10_train,
-        epochs=5,
+        epochs=30,
         validation_data=ds_cifar10_test,
         callbacks=[WandbMetricsLogger()]
     )
